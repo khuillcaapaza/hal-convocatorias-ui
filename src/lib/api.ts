@@ -15,17 +15,17 @@ const TOKEN_KEY = "convocatorias_token";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return window.sessionStorage.getItem(TOKEN_KEY);
+  return window.localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(TOKEN_KEY, token);
+  window.localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function clearToken(): void {
   if (typeof window === "undefined") return;
-  window.sessionStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(TOKEN_KEY);
 }
 
 const http = axios.create({ baseURL: API_BASE });
@@ -142,7 +142,8 @@ export async function eliminarArchivo(slug: string, id: number): Promise<void> {
 
 export async function subirArchivo(
   slug: string,
-  archivo: File
+  archivo: File,
+  onProgress?: (porcentaje: number) => void
 ): Promise<UploadResult> {
   const form = new FormData();
   form.append("slug", slug);
@@ -151,7 +152,16 @@ export async function subirArchivo(
   const { data } = await axios.post<UploadResult>(
     `${FILES_API_BASE}/upload`,
     form,
-    { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      onUploadProgress: (e) => {
+        if (!onProgress) return;
+        const total = e.total ?? archivo.size;
+        if (total > 0) {
+          onProgress(Math.min(100, Math.round((e.loaded * 100) / total)));
+        }
+      },
+    }
   );
   return data;
 }

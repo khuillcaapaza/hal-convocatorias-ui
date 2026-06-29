@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   actualizarConvocatoria,
   crearConvocatoria,
@@ -27,6 +27,7 @@ interface Props {
 
 const AREAS = ["CAS", "Reemplazo", "Nombramiento", "Ascenso", "General"];
 const EXT_ACEPTADAS = ".pdf,.jpg,.jpeg,.png";
+const POR_PAGINA = 9;
 
 type Mensaje = { texto: string; tipo: "ok" | "error" } | null;
 
@@ -35,6 +36,15 @@ function IconoConvocatorias() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <path d="M14 2v6h6M9 13h6M9 17h6M9 9h1" />
+    </svg>
+  );
+}
+
+function IconoBuscar() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
     </svg>
   );
 }
@@ -138,6 +148,8 @@ function ListaConvocatorias({
   const [items, setItems] = useState<ConvocatoriaMeta[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState<Mensaje>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -154,6 +166,26 @@ function ListaConvocatorias({
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((c) =>
+      `${c.title} ${c.area} ${c.description}`.toLowerCase().includes(q)
+    );
+  }, [items, busqueda]);
+
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA));
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const visibles = filtrados.slice(
+    (paginaSegura - 1) * POR_PAGINA,
+    paginaSegura * POR_PAGINA
+  );
+
+  function buscar(texto: string) {
+    setBusqueda(texto);
+    setPagina(1);
+  }
 
   async function borrar(slug: string, titulo: string) {
     if (!window.confirm(`¿Eliminar la convocatoria "${titulo}" y sus archivos?`))
@@ -187,49 +219,107 @@ function ListaConvocatorias({
         </p>
       )}
 
+      {!cargando && items.length > 0 && (
+        <div className="lista-barra">
+          <div className="busqueda">
+            <IconoBuscar />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => buscar(e.target.value)}
+              placeholder="Buscar por título, área o descripción…"
+            />
+          </div>
+          <span className="lista-conteo">
+            {filtrados.length} convocatoria{filtrados.length === 1 ? "" : "s"}
+          </span>
+        </div>
+      )}
+
       {cargando ? (
         <p className="cargando">Cargando…</p>
       ) : items.length === 0 ? (
         <p className="cargando">Aún no hay convocatorias. Crea la primera.</p>
+      ) : filtrados.length === 0 ? (
+        <p className="cargando">
+          No se encontraron convocatorias para «{busqueda.trim()}».
+        </p>
       ) : (
-        <div className="grid-cronogramas">
-          {items.map((c) => (
-            <article key={c.slug} className="cron-card">
-              <div className="cron-card__top">
-                <span className="cron-card__mes">{c.date}</span>
-                <span
-                  className={
-                    "chip " + (c.status === "Abierta" ? "chip--ok" : "chip--off")
-                  }
+        <>
+          <div className="grid-cronogramas">
+            {visibles.map((c) => (
+              <article key={c.slug} className="cron-card">
+                <div className="cron-card__top">
+                  <span className="cron-card__mes">{c.date}</span>
+                  <span
+                    className={
+                      "chip " +
+                      (c.status === "Abierta" ? "chip--ok" : "chip--off")
+                    }
+                  >
+                    {c.status}
+                  </span>
+                </div>
+                <h3>{c.title}</h3>
+                <p>{c.description}</p>
+                <div
+                  className="cron-card__top"
+                  style={{ marginBottom: "0.6rem" }}
                 >
-                  {c.status}
-                </span>
-              </div>
-              <h3>{c.title}</h3>
-              <p>{c.description}</p>
-              <div className="cron-card__top" style={{ marginBottom: "0.6rem" }}>
-                <span className="dia-pill">{c.area}</span>
-                {!c.publicado && <span className="chip chip--off">Oculta</span>}
-              </div>
-              <div className="cron-card__acciones">
+                  <span className="dia-pill">{c.area}</span>
+                  {!c.publicado && <span className="chip chip--off">Oculta</span>}
+                </div>
+                <div className="cron-card__acciones">
+                  <button
+                    type="button"
+                    className="boton boton--ghost boton--sm"
+                    onClick={() => onEditar(c.slug)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    className="boton boton--peligro boton--sm"
+                    onClick={() => borrar(c.slug, c.title)}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {totalPaginas > 1 && (
+            <div className="paginacion">
+              <button
+                type="button"
+                className="pag-btn"
+                onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                disabled={paginaSegura === 1}
+              >
+                ‹
+              </button>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((p) => (
                 <button
+                  key={p}
                   type="button"
-                  className="boton boton--ghost boton--sm"
-                  onClick={() => onEditar(c.slug)}
+                  className={"pag-btn" + (p === paginaSegura ? " pag-btn--activo" : "")}
+                  onClick={() => setPagina(p)}
                 >
-                  Editar
+                  {p}
                 </button>
-                <button
-                  type="button"
-                  className="boton boton--peligro boton--sm"
-                  onClick={() => borrar(c.slug, c.title)}
-                >
-                  Eliminar
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
+              ))}
+              <button
+                type="button"
+                className="pag-btn"
+                onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                disabled={paginaSegura === totalPaginas}
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </>
       )}
     </section>
   );
@@ -461,6 +551,7 @@ function GestorArchivos({
   const [archivo, setArchivo] = useState<File | null>(null);
   const [etiqueta, setEtiqueta] = useState("");
   const [subiendo, setSubiendo] = useState(false);
+  const [progreso, setProgreso] = useState(0);
   const [mensaje, setMensaje] = useState<Mensaje>(null);
 
   async function subir(e: FormEvent) {
@@ -470,10 +561,11 @@ function GestorArchivos({
       return;
     }
     setSubiendo(true);
+    setProgreso(0);
     setMensaje(null);
     try {
       // 1) Sube el binario directamente al servicio de archivos.
-      const res = await subirArchivo(slug, archivo);
+      const res = await subirArchivo(slug, archivo, (p) => setProgreso(p));
       // 2) Registra el metadato en la API. Si falla, revierte el huérfano.
       try {
         await registrarArchivo(slug, {
@@ -498,6 +590,7 @@ function GestorArchivos({
       setMensaje({ texto: (err as Error).message, tipo: "error" });
     } finally {
       setSubiendo(false);
+      setProgreso(0);
     }
   }
 
@@ -553,6 +646,24 @@ function GestorArchivos({
           {subiendo ? "Subiendo…" : "Subir"}
         </button>
       </form>
+
+      {subiendo && (
+        <div className="subida-progreso">
+          <div className="subida-progreso__cab">
+            <strong>{archivo?.name ?? "Archivo"}</strong>
+            <span>{progreso < 100 ? `${progreso}%` : "Procesando…"}</span>
+          </div>
+          <div className="barra-progreso">
+            <div
+              className={
+                "barra-progreso__relleno" +
+                (progreso >= 100 ? " barra-progreso__relleno--indeterminado" : "")
+              }
+              style={progreso < 100 ? { width: `${progreso}%` } : undefined}
+            />
+          </div>
+        </div>
+      )}
 
       {convocatoria.files.length === 0 ? (
         <p className="seccion-sub" style={{ marginTop: "0.75rem" }}>

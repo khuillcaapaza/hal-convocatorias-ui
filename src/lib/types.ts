@@ -16,6 +16,8 @@ export interface LoginChallenge {
   email: string;
   expira_en?: number;
   mensaje?: string;
+  /** Solo en modo desarrollo (APP_DEBUG): código para autocompletar. */
+  dev_codigo?: string;
 }
 
 // ── Convocatorias ──────────────────────────────────────────────────────

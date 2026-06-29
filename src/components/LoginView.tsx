@@ -32,7 +32,8 @@ export default function LoginView({ onSuccess }: Props) {
     try {
       const data = await login(correo, password);
       setPassword("");
-      setCodigo("");
+      // En desarrollo el backend devuelve el código para autocompletarlo.
+      setCodigo(data.dev_codigo ?? "");
       setPaso("codigo");
       setMensaje({
         texto: data.mensaje ?? "Te enviamos un código de verificación a tu correo.",

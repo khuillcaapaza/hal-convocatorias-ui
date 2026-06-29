@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   // Genera carpetas con index.html para servirse como estáticos.
   trailingSlash: true,
+  // Se publica bajo /admin en el subdominio (vacío en local). Lo fija el build.
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || "",
 };
 
 export default nextConfig;
