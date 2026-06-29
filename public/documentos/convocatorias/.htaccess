@@ -1,6 +1,0 @@
-# Carpeta de subidas: nunca ejecutar ni exponer código del lado servidor.
-<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phps|cgi|pl|py|sh|asp|aspx)$">
-    Require all denied
-</FilesMatch>
-RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phps
-RemoveType .php .phtml .php3 .php4 .php5 .php7 .phps
