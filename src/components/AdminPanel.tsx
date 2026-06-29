@@ -68,6 +68,85 @@ function formatearBytes(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(i ? 1 : 0)} ${u[i]}`;
 }
 
+// ── Modal de confirmación ────────────────────────────────────────────
+
+interface ConfirmacionState {
+  titulo: string;
+  mensaje: string;
+  etiquetaConfirmar?: string;
+  onConfirmar: () => void | Promise<void>;
+}
+
+function ModalConfirmar({
+  estado,
+  onCerrar,
+}: {
+  estado: ConfirmacionState | null;
+  onCerrar: () => void;
+}) {
+  const [procesando, setProcesando] = useState(false);
+
+  useEffect(() => {
+    if (!estado) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onCerrar();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [estado, onCerrar]);
+
+  if (!estado) return null;
+
+  async function confirmar() {
+    setProcesando(true);
+    try {
+      await estado!.onConfirmar();
+      onCerrar();
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  return (
+    <div className="modal-fondo" onClick={onCerrar}>
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal__icono">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
+          </svg>
+        </div>
+        <h3 className="modal__titulo">{estado.titulo}</h3>
+        <p className="modal__texto">{estado.mensaje}</p>
+        <div className="modal__acciones">
+          <button
+            type="button"
+            className="boton boton--secundario boton--sm"
+            onClick={onCerrar}
+            disabled={procesando}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="boton boton--peligro boton--sm"
+            onClick={confirmar}
+            disabled={procesando}
+          >
+            {procesando ? "Eliminando…" : estado.etiquetaConfirmar ?? "Eliminar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function AdminPanel({ usuario, onLogout }: Props) {
   const [vista, setVista] = useState<"lista" | "editor">("lista");
   // slug en edición; "" indica una convocatoria nueva (aún no creada).
@@ -150,6 +229,7 @@ function ListaConvocatorias({
   const [mensaje, setMensaje] = useState<Mensaje>(null);
   const [busqueda, setBusqueda] = useState("");
   const [pagina, setPagina] = useState(1);
+  const [confirmacion, setConfirmacion] = useState<ConfirmacionState | null>(null);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -188,15 +268,27 @@ function ListaConvocatorias({
   }
 
   async function borrar(slug: string, titulo: string) {
-    if (!window.confirm(`¿Eliminar la convocatoria "${titulo}" y sus archivos?`))
+    const conv = items.find((c) => c.slug === slug);
+    if (conv?.status === "Cerrada") {
+      setMensaje({
+        texto: "No se pueden eliminar convocatorias cerradas.",
+        tipo: "error",
+      });
       return;
-    try {
-      await eliminarConvocatoria(slug);
-      setMensaje({ texto: "Convocatoria eliminada.", tipo: "ok" });
-      await cargar();
-    } catch (err) {
-      setMensaje({ texto: (err as Error).message, tipo: "error" });
     }
+    setConfirmacion({
+      titulo: "Eliminar convocatoria",
+      mensaje: `¿Eliminar la convocatoria "${titulo}" y todos sus archivos? Esta acción no se puede deshacer.`,
+      onConfirmar: async () => {
+        try {
+          await eliminarConvocatoria(slug);
+          setMensaje({ texto: "Convocatoria eliminada.", tipo: "ok" });
+          await cargar();
+        } catch (err) {
+          setMensaje({ texto: (err as Error).message, tipo: "error" });
+        }
+      },
+    });
   }
 
   return (
@@ -281,6 +373,12 @@ function ListaConvocatorias({
                     type="button"
                     className="boton boton--peligro boton--sm"
                     onClick={() => borrar(c.slug, c.title)}
+                    disabled={c.status === "Cerrada"}
+                    title={
+                      c.status === "Cerrada"
+                        ? "No se pueden eliminar convocatorias cerradas"
+                        : "Eliminar convocatoria"
+                    }
                   >
                     Eliminar
                   </button>
@@ -321,6 +419,10 @@ function ListaConvocatorias({
           )}
         </>
       )}
+      <ModalConfirmar
+        estado={confirmacion}
+        onCerrar={() => setConfirmacion(null)}
+      />
     </section>
   );
 }
@@ -553,6 +655,7 @@ function GestorArchivos({
   const [subiendo, setSubiendo] = useState(false);
   const [progreso, setProgreso] = useState(0);
   const [mensaje, setMensaje] = useState<Mensaje>(null);
+  const [confirmacion, setConfirmacion] = useState<ConfirmacionState | null>(null);
 
   async function subir(e: FormEvent) {
     e.preventDefault();
@@ -595,14 +698,19 @@ function GestorArchivos({
   }
 
   async function borrar(id: number, label: string) {
-    if (!window.confirm(`¿Eliminar el archivo "${label}"?`)) return;
-    try {
-      await eliminarArchivo(slug, id);
-      setMensaje({ texto: "Archivo eliminado.", tipo: "ok" });
-      await onCambio();
-    } catch (err) {
-      setMensaje({ texto: (err as Error).message, tipo: "error" });
-    }
+    setConfirmacion({
+      titulo: "Eliminar documento",
+      mensaje: `¿Eliminar el archivo "${label}"? Esta acción no se puede deshacer.`,
+      onConfirmar: async () => {
+        try {
+          await eliminarArchivo(slug, id);
+          setMensaje({ texto: "Archivo eliminado.", tipo: "ok" });
+          await onCambio();
+        } catch (err) {
+          setMensaje({ texto: (err as Error).message, tipo: "error" });
+        }
+      },
+    });
   }
 
   return (
@@ -698,6 +806,10 @@ function GestorArchivos({
           ))}
         </div>
       )}
+      <ModalConfirmar
+        estado={confirmacion}
+        onCerrar={() => setConfirmacion(null)}
+      />
     </div>
   );
 }
