@@ -65,6 +65,6 @@ jobs:
             set mirror:parallel-transfer-count 1;
             open -u $DEPLOY_USER, sftp://$DEPLOY_HOST;
             mkdir -p -f $REMOTE_DOMAIN_DIR/public_html/admin;
-            mirror -R --delete --no-perms --ignore-time --verbose ./out/ $REMOTE_DOMAIN_DIR/public_html/admin;
+            mirror -R --delete --no-perms --verbose ./out/ $REMOTE_DOMAIN_DIR/public_html/admin;
             bye
           "
