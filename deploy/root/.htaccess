@@ -1,0 +1,12 @@
+# Redirección de la raíz del subdominio al panel de administración.
+#
+# El panel Next.js (output: export) se publica en public_html/admin; la raíz del
+# subdominio no aloja ninguna app, así que enviamos "/" a "/admin/".
+#
+# RedirectMatch con ^/$ solo afecta a la ruta raíz EXACTA: /api, /admin y el
+# resto de rutas quedan intactas (no se redirigen).
+#
+# Este archivo se sube a public_html/.htaccess (fuera de /admin, que el deploy
+# reescribe con --delete). Requiere Apache + mod_alias.
+
+RedirectMatch 302 ^/$ /admin/
