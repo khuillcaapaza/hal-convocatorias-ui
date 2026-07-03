@@ -178,4 +178,27 @@ export async function eliminarArchivoFisico(
   });
 }
 
+// Cliente REST genérico (usado por los hooks de gestión de usuarios).
+export const api = {
+  async get(url: string, config?: any) {
+    const { data } = await http.get(url, config);
+    return data;
+  },
+
+  async post(url: string, payload?: any, config?: any) {
+    const { data } = await http.post(url, payload, config);
+    return data;
+  },
+
+  async put(url: string, payload?: any, config?: any) {
+    const { data } = await http.put(url, payload, config);
+    return data;
+  },
+
+  async delete(url: string, config?: any) {
+    const { data } = await http.delete(url, config);
+    return data;
+  },
+};
+
 export default http;
