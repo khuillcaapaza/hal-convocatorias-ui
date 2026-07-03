@@ -91,7 +91,8 @@ jobs:
             set mirror:parallel-transfer-count 1;
             open -u $DEPLOY_USER, sftp://$DEPLOY_HOST;
             mkdir -p -f $REMOTE_DOMAIN_DIR/public_html/admin;
-            mirror -R --delete --no-perms --verbose ./out/ $REMOTE_DOMAIN_DIR/public_html/admin;
+            mirror -R --no-perms --verbose ./out/_next/ $REMOTE_DOMAIN_DIR/public_html/admin/_next;
+            mirror -R --delete --no-perms --verbose --exclude _next/ ./out/ $REMOTE_DOMAIN_DIR/public_html/admin;
             put -O $REMOTE_DOMAIN_DIR/public_html ./deploy/root/.htaccess;
             bye
           "
