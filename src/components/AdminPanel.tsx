@@ -5,7 +5,6 @@ import type { Usuario } from "@/lib/types";
 import { IconoConvocatorias } from "./icons";
 import ListaConvocatorias from "./ListaConvocatorias";
 import EditorConvocatoria from "./EditorConvocatoria";
-import { UsersManagement } from "./UsersManagement";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 
 interface Props {
@@ -13,18 +12,7 @@ interface Props {
   onLogout: () => void;
 }
 
-type PrincipalView = "convocatorias" | "usuarios" | "settings";
-
-function IconoUsuarios() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
+type PrincipalView = "convocatorias" | "settings";
 
 function IconoSeguridad() {
   return (
@@ -49,7 +37,7 @@ export default function AdminPanel({ usuario, onLogout }: Props) {
   const aplicarDesdeUrl = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
     const view = params.get("view");
-    if (view === "usuarios" || view === "settings") {
+    if (view === "settings") {
       setPrincipalView(view);
       setSlugEditando(null);
       setVista("lista");
@@ -140,16 +128,6 @@ export default function AdminPanel({ usuario, onLogout }: Props) {
               <IconoConvocatorias />
               Convocatorias
             </button>
-            {usuario.rol === "admin" && (
-              <button
-                type="button"
-                className={"nav-item" + (principalView === "usuarios" ? " nav-item--activo" : "")}
-                onClick={() => cambiarSeccion("usuarios")}
-              >
-                <IconoUsuarios />
-                Gestión de Usuarios
-              </button>
-            )}
             <button
               type="button"
               className={"nav-item" + (principalView === "settings" ? " nav-item--activo" : "")}
@@ -172,8 +150,6 @@ export default function AdminPanel({ usuario, onLogout }: Props) {
                 onCreada={editar}
               />
             )
-          ) : principalView === "usuarios" ? (
-            <UsersManagement />
           ) : (
             <ChangePasswordForm />
           )}
