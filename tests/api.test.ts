@@ -35,37 +35,79 @@ const resCalls = mocks.instance.interceptors.response.use.mock.calls[0] as [
 const onFulfilled = resCalls[0];
 const onRejected = resCalls[1];
 
+function clearCookie() {
+  document.cookie = "hal_token=; path=/; max-age=0";
+}
+function setCookie(value: string) {
+  document.cookie = `hal_token=${encodeURIComponent(value)}; path=/`;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  window.localStorage.clear();
+  clearCookie();
 });
 
-describe("token helpers", () => {
-  it("set/get/clear sobre localStorage", () => {
+describe("token helpers (cookie SSO)", () => {
+  it("getToken devuelve null sin cookie", () => {
     expect(api.getToken()).toBeNull();
-    api.setToken("abc");
-    expect(api.getToken()).toBe("abc");
+  });
+
+  it("getToken lee el valor de la cookie hal_token", () => {
+    setCookie("my-jwt");
+    expect(api.getToken()).toBe("my-jwt");
+  });
+
+  it("clearToken borra la cookie", () => {
+    setCookie("my-jwt");
     api.clearToken();
     expect(api.getToken()).toBeNull();
   });
 
-  it("no fallan en SSR (sin window)", () => {
-    vi.stubGlobal("window", undefined);
+  it("getToken no falla en SSR (sin document)", () => {
+    vi.stubGlobal("document", undefined);
     expect(api.getToken()).toBeNull();
-    expect(() => api.setToken("x")).not.toThrow();
+    vi.unstubAllGlobals();
+  });
+
+  it("clearToken no falla en SSR (sin document)", () => {
+    vi.stubGlobal("document", undefined);
     expect(() => api.clearToken()).not.toThrow();
     vi.unstubAllGlobals();
   });
 });
 
+describe("redirectToAuth", () => {
+  it("asigna window.location.href a la URL de auth", () => {
+    const hrefs: string[] = [];
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: {
+        set href(v: string) {
+          hrefs.push(v);
+        },
+      },
+    });
+    api.redirectToAuth();
+    expect(hrefs[0]).toMatch(/localhost|hospitalantoniolorena/);
+    Object.defineProperty(window, "location", { configurable: true, value: original });
+  });
+
+  it("no falla en SSR (sin window)", () => {
+    vi.stubGlobal("window", undefined);
+    expect(() => api.redirectToAuth()).not.toThrow();
+    vi.unstubAllGlobals();
+  });
+});
+
 describe("interceptor de petición", () => {
-  it("añade Authorization si hay token", () => {
-    api.setToken("tok");
+  it("añade Authorization si hay cookie", () => {
+    setCookie("tok");
     const cfg = reqInterceptor({ headers: {} });
     expect(cfg.headers.Authorization).toBe("Bearer tok");
   });
 
-  it("no añade Authorization sin token", () => {
+  it("no añade Authorization sin cookie", () => {
     const cfg = reqInterceptor({ headers: {} });
     expect(cfg.headers.Authorization).toBeUndefined();
   });
@@ -76,8 +118,7 @@ describe("interceptor de respuesta", () => {
     expect(onFulfilled("ok")).toBe("ok");
   });
 
-  it("401 fuera de /login cierra sesión", async () => {
-    api.setToken("tok");
+  it("401 dispara auth:logout y rechaza con sesión expirada", async () => {
     const eventSpy = vi.fn();
     window.addEventListener("auth:logout", eventSpy);
 
@@ -85,18 +126,8 @@ describe("interceptor de respuesta", () => {
       onRejected({ response: { status: 401 }, config: { url: "/me" } })
     ).rejects.toThrow("Sesión expirada");
 
-    expect(api.getToken()).toBeNull();
     expect(eventSpy).toHaveBeenCalled();
     window.removeEventListener("auth:logout", eventSpy);
-  });
-
-  it("401 en /login se trata como error normal", async () => {
-    await expect(
-      onRejected({
-        response: { status: 401, data: { error: "Credenciales inválidas" } },
-        config: { url: "/login" },
-      })
-    ).rejects.toThrow("Credenciales inválidas");
   });
 
   it("usa el mensaje del servidor cuando existe", async () => {
@@ -114,26 +145,7 @@ describe("interceptor de respuesta", () => {
   });
 });
 
-describe("autenticación", () => {
-  it("login", async () => {
-    mocks.instance.post.mockResolvedValue({ data: { requiere2fa: true } });
-    await api.login("a@b.test", "pass");
-    expect(mocks.instance.post).toHaveBeenCalledWith("/login", {
-      email: "a@b.test",
-      password: "pass",
-    });
-  });
-
-  it("verifyCode", async () => {
-    mocks.instance.post.mockResolvedValue({ data: { token: "t" } });
-    const r = await api.verifyCode("a@b.test", "123456");
-    expect(r.token).toBe("t");
-    expect(mocks.instance.post).toHaveBeenCalledWith("/login/verify", {
-      email: "a@b.test",
-      codigo: "123456",
-    });
-  });
-
+describe("perfil", () => {
   it("fetchPerfil", async () => {
     mocks.instance.get.mockResolvedValue({ data: { usuario: { usuario: "admin" } } });
     expect(await api.fetchPerfil()).toEqual({ usuario: "admin" });
@@ -204,7 +216,7 @@ describe("archivos (registro en API)", () => {
 
 describe("subida directa (multipart)", () => {
   it("subirArchivo envía FormData con token y reporta progreso", async () => {
-    api.setToken("tok");
+    setCookie("tok");
     mocks.axiosDefault.post.mockResolvedValue({ data: { nombre: "doc.pdf" } });
     const archivo = { size: 200 } as File;
     const progreso: number[] = [];
@@ -248,7 +260,7 @@ describe("subida directa (multipart)", () => {
   });
 
   it("eliminarArchivoFisico con token", async () => {
-    api.setToken("tok");
+    setCookie("tok");
     mocks.axiosDefault.delete.mockResolvedValue({ data: {} });
     await api.eliminarArchivoFisico("slug-1", "doc.pdf");
 
