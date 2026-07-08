@@ -23,8 +23,8 @@ env:
   NEXT_PUBLIC_AUTH_URL: https://auth.hospitalantoniolorena.gob.pe
   # Dominio de la cookie SSO (para poder limpiarla al cerrar sesión).
   NEXT_PUBLIC_COOKIE_DOMAIN: .hospitalantoniolorena.gob.pe
-  # El servicio de archivos vive en el dominio principal.
-  NEXT_PUBLIC_FILES_API_BASE: https://hospitalantoniolorena.gob.pe/files-api
+  # El servicio de archivos vive en su propio subdominio (archivos.*).
+  NEXT_PUBLIC_FILES_API_BASE: https://archivos.hospitalantoniolorena.gob.pe/files-api
 
 jobs:
   # Ejecuta los tests (con umbral de cobertura 100%) antes de desplegar.
