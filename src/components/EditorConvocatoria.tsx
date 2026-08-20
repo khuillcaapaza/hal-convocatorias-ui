@@ -24,7 +24,7 @@ export default function EditorConvocatoria({
 }: {
   slug: string; // "" = nueva
   onVolver: () => void;
-  onCreada: (slug: string) => void;
+  onCreada: (uuid: string) => void;
 }) {
   const esNueva = slug === "";
   const [form, setForm] = useState<ConvocatoriaInput>(formInicial());
@@ -87,12 +87,12 @@ export default function EditorConvocatoria({
     setGuardando(true);
     try {
       if (esNueva) {
-        const nuevoSlug = await crearConvocatoria(form);
+        const nuevoUuid = await crearConvocatoria(form);
         setMensaje({
           texto: "Convocatoria creada. Ya puedes añadir archivos.",
           tipo: "ok",
         });
-        onCreada(nuevoSlug); // pasa a modo edición del nuevo slug
+        onCreada(nuevoUuid); // pasa a modo edición del nuevo UUID
       } else {
         await actualizarConvocatoria(slug, form);
         setMensaje({ texto: "Cambios guardados.", tipo: "ok" });

@@ -36,6 +36,7 @@ export interface ConvocatoriaFile {
 
 /** Metadatos de una convocatoria (listados). */
 export interface ConvocatoriaMeta {
+  uuid: string;
   slug: string;
   title: string;
   area: string;
@@ -68,6 +69,7 @@ export interface ConvocatoriaInput {
 /** Resultado de subir un archivo a hal-archivos-api. */
 export interface UploadResult {
   ok: boolean;
+  uuid?: string;
   slug: string;
   nombre: string;
   ext: string;

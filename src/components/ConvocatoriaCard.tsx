@@ -10,8 +10,8 @@ export default function ConvocatoriaCard({
   onEliminar,
 }: {
   convocatoria: ConvocatoriaMeta;
-  onEditar: (slug: string) => void;
-  onEliminar: (slug: string, titulo: string) => void;
+  onEditar: (uuid: string) => void;
+  onEliminar: (uuid: string, titulo: string) => void;
 }) {
   const c = convocatoria;
   const cerrada = c.status === "Cerrada";
@@ -34,14 +34,14 @@ export default function ConvocatoriaCard({
         <button
           type="button"
           className="boton boton--ghost boton--sm"
-          onClick={() => onEditar(c.slug)}
+          onClick={() => onEditar(c.uuid || c.slug)}
         >
           {cerrada ? "Ver" : "Editar"}
         </button>
         <button
           type="button"
           className="boton boton--peligro boton--sm"
-          onClick={() => onEliminar(c.slug, c.title)}
+          onClick={() => onEliminar(c.uuid || c.slug, c.title)}
           disabled={cerrada}
           title={
             cerrada

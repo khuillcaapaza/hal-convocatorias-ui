@@ -78,9 +78,9 @@ export async function fetchConvocatorias(): Promise<ConvocatoriaMeta[]> {
   return data.convocatorias;
 }
 
-export async function fetchConvocatoria(slug: string): Promise<Convocatoria> {
+export async function fetchConvocatoria(uuid: string): Promise<Convocatoria> {
   const { data } = await http.get<{ convocatoria: Convocatoria }>(
-    `/admin/convocatorias/${encodeURIComponent(slug)}`
+    `/admin/convocatorias/${encodeURIComponent(uuid)}`
   );
   return data.convocatoria;
 }
@@ -88,38 +88,38 @@ export async function fetchConvocatoria(slug: string): Promise<Convocatoria> {
 export async function crearConvocatoria(
   input: ConvocatoriaInput
 ): Promise<string> {
-  const { data } = await http.post<{ slug: string }>(
+  const { data } = await http.post<{ uuid?: string; slug?: string }>(
     "/admin/convocatorias",
     input
   );
-  return data.slug;
+  return data.uuid ?? data.slug ?? "";
 }
 
 export async function actualizarConvocatoria(
-  slug: string,
+  uuid: string,
   input: ConvocatoriaInput
 ): Promise<void> {
-  await http.put(`/admin/convocatorias/${encodeURIComponent(slug)}`, input);
+  await http.put(`/admin/convocatorias/${encodeURIComponent(uuid)}`, input);
 }
 
-export async function eliminarConvocatoria(slug: string): Promise<void> {
-  await http.delete(`/admin/convocatorias/${encodeURIComponent(slug)}`);
+export async function eliminarConvocatoria(uuid: string): Promise<void> {
+  await http.delete(`/admin/convocatorias/${encodeURIComponent(uuid)}`);
 }
 
 export async function registrarArchivo(
-  slug: string,
+  uuid: string,
   meta: { etiqueta: string; nombre: string; ext: string; tamano: number }
 ): Promise<number> {
   const { data } = await http.post<{ id: number }>(
-    `/admin/convocatorias/${encodeURIComponent(slug)}/archivos`,
+    `/admin/convocatorias/${encodeURIComponent(uuid)}/archivos`,
     meta
   );
   return data.id;
 }
 
-export async function eliminarArchivo(slug: string, id: number): Promise<void> {
+export async function eliminarArchivo(uuid: string, id: number): Promise<void> {
   await http.delete(
-    `/admin/convocatorias/${encodeURIComponent(slug)}/archivos/${id}`
+    `/admin/convocatorias/${encodeURIComponent(uuid)}/archivos/${id}`
   );
 }
 

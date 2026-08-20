@@ -26,6 +26,7 @@ export default function GestorArchivos({
   onCambio: () => Promise<void> | void;
   soloLectura?: boolean;
 }) {
+  const uuid = convocatoria.uuid;
   const slug = convocatoria.slug;
   const [archivo, setArchivo] = useState<File | null>(null);
   const [etiqueta, setEtiqueta] = useState("");
@@ -48,7 +49,7 @@ export default function GestorArchivos({
       const res = await subirArchivo(slug, archivo, (p) => setProgreso(p));
       // 2) Registra el metadato en la API. Si falla, revierte el huérfano.
       try {
-        await registrarArchivo(slug, {
+        await registrarArchivo(uuid, {
           etiqueta: etiqueta.trim() || archivo.name,
           nombre: res.nombre,
           ext: res.ext,
@@ -80,7 +81,7 @@ export default function GestorArchivos({
       mensaje: `¿Eliminar el archivo "${label}"? Esta acción no se puede deshacer.`,
       onConfirmar: async () => {
         try {
-          await eliminarArchivo(slug, id);
+          await eliminarArchivo(uuid, id);
           setMensaje({ texto: "Archivo eliminado.", tipo: "ok" });
           await onCambio();
         } catch (err) {

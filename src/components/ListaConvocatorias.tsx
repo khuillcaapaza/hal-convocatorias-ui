@@ -19,7 +19,7 @@ export default function ListaConvocatorias({
   onEditar,
 }: {
   onNueva: () => void;
-  onEditar: (slug: string) => void;
+  onEditar: (uuid: string) => void;
 }) {
   const [items, setItems] = useState<ConvocatoriaMeta[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -64,8 +64,8 @@ export default function ListaConvocatorias({
     setPagina(1);
   }
 
-  function eliminar(slug: string, titulo: string) {
-    const conv = items.find((c) => c.slug === slug);
+  function eliminar(uuid: string, titulo: string) {
+    const conv = items.find((c) => c.uuid === uuid);
     if (conv?.status === "Cerrada") {
       setMensaje({
         texto: "No se pueden eliminar convocatorias cerradas.",
@@ -78,7 +78,7 @@ export default function ListaConvocatorias({
       mensaje: `¿Eliminar la convocatoria "${titulo}" y todos sus archivos? Esta acción no se puede deshacer.`,
       onConfirmar: async () => {
         try {
-          await eliminarConvocatoria(slug);
+          await eliminarConvocatoria(uuid);
           setMensaje({ texto: "Convocatoria eliminada.", tipo: "ok" });
           await cargar();
         } catch (err) {
@@ -125,7 +125,7 @@ export default function ListaConvocatorias({
           <div className="grid-cronogramas">
             {visibles.map((c) => (
               <ConvocatoriaCard
-                key={c.slug}
+                key={c.uuid || c.slug}
                 convocatoria={c}
                 onEditar={onEditar}
                 onEliminar={eliminar}

@@ -14,25 +14,25 @@ interface Props {
 /**
  * Shell del panel de administración: barra superior, navegación y enrutado
  * entre el listado y el editor. El estado se refleja en la URL
- * (?editar=<slug> | ?nuevo=1) mediante la History API.
+ * (?editar=<uuid> | ?nuevo=1) mediante la History API.
  */
 export default function AdminPanel({ usuario, onLogout }: Props) {
   const [vista, setVista] = useState<"lista" | "editor">("lista");
-  // slug en edición; "" indica una convocatoria nueva (aún no creada).
-  const [slugEditando, setSlugEditando] = useState<string | null>(null);
+  // UUID en edición; "" indica una convocatoria nueva (aún no creada).
+  const [uuidEditando, setUuidEditando] = useState<string | null>(null);
 
-  // Sincroniza el estado con la URL (?view= | ?editar=<slug> | ?nuevo=1) sin recargar.
+  // Sincroniza el estado con la URL (?view= | ?editar=<uuid> | ?nuevo=1) sin recargar.
   const aplicarDesdeUrl = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
-    const slug = params.get("editar");
-    if (slug) {
-      setSlugEditando(slug);
+    const uuid = params.get("editar");
+    if (uuid) {
+      setUuidEditando(uuid);
       setVista("editor");
     } else if (params.get("nuevo")) {
-      setSlugEditando("");
+      setUuidEditando("");
       setVista("editor");
     } else {
-      setSlugEditando(null);
+      setUuidEditando(null);
       setVista("lista");
     }
   }, []);
@@ -50,25 +50,25 @@ export default function AdminPanel({ usuario, onLogout }: Props) {
   }, []);
 
   function irAConvocatorias() {
-    setSlugEditando(null);
+    setUuidEditando(null);
     setVista("lista");
     navegar("");
   }
 
   function nueva() {
-    setSlugEditando("");
+    setUuidEditando("");
     setVista("editor");
     navegar("nuevo=1");
   }
 
-  function editar(slug: string) {
-    setSlugEditando(slug);
+  function editar(uuid: string) {
+    setUuidEditando(uuid);
     setVista("editor");
-    navegar(`editar=${encodeURIComponent(slug)}`);
+    navegar(`editar=${encodeURIComponent(uuid)}`);
   }
 
   function volverALista() {
-    setSlugEditando(null);
+    setUuidEditando(null);
     setVista("lista");
     navegar("");
   }
@@ -114,7 +114,7 @@ export default function AdminPanel({ usuario, onLogout }: Props) {
             <ListaConvocatorias onNueva={nueva} onEditar={editar} />
           ) : (
             <EditorConvocatoria
-              slug={slugEditando ?? ""}
+              slug={uuidEditando ?? ""}
               onVolver={volverALista}
               onCreada={editar}
             />
